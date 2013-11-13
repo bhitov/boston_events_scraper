@@ -27,7 +27,12 @@ class MITMainEventsScraper(Scraper):
 
         # This data isn't useful yet, just a demo
         data = client.service.getDateRangeEvents(start_date.strftime(fstr), end_date.strftime(fstr))
+
         # We want to build a list of SearchCriterion but gah fuck SOAP
+        # It will look something like:
+        client.factory.create('SearchCriterion')
+        # and then somehow it works or something
+
 
         return data
 
@@ -96,6 +101,12 @@ class PicowerEventScraper(HtmlScraper):
 
 class CSAILEventsScraper(ICalScraper):
     scrape_url = "https://calendar.csail.mit.edu/event_calendar.ics"
+    additional_fields = ['LOCATION']
 
+class HarvardMoSCEventsScraper(ICalScraper):
+    scrape_url = "http://hmsc.harvard.edu/calendar/export.ics"
 
-
+class HMSEventsScraper(ICalScraper):
+    #This will need heavy filtering to not be annoying
+    scrape_url = "http://www.trumba.com/calendars/harvardmedicalschool.ics"
+    additional_fields = ['LOCATION', ['URL', 'event_url']]

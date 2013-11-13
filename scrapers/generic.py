@@ -1,6 +1,3 @@
-__author__ = 'ben'
-
-
 from urllib2 import urlopen
 from scrapy.selector import HtmlXPathSelector
 from icalendar import Calendar
@@ -30,13 +27,54 @@ class Scraper(object):
 class ICalScraper(Scraper):
     '''
     Parses an Ical file
+
+    Fields can be customized like so:
+
+    To toggle on a common field pattern, add the iCal field name
+      to additional_fields
+
+      ex. additional_fields = ['LOCATION']
+
+    To add a new iCal to event field map, add either a list with
+      [ICAL_FIELD, EVENT_FIELD]
+      or a dict with
+      {ICAL_FIELD1 : EVENT_FIELD1, ICAL_FIELD2 : EVENT_FIELD2}
+
+      ex. additional_fields = ['CATEGORIES', 'topics']
+          additional_fields = {'CATEGORIES' : 'topics'}
+
     '''
     scrape_url = None
+    UNICODE_FIELDS = {
+        'SUMMARY': 'title',
+        'DESCRIPTION' : 'description',
+        'LOCATION' : 'location',
+    }
+    fields = ['SUMMARY', 'DESCRIPTION']
+    additional_fields = []
 
+
+    def __init__(self):
+        '''
+        Parses additional_fields
+        '''
+
+        self.all_fields = self.fields
+        self.cal_to_event_map = dict(self.UNICODE_FIELDS.items())
+
+        for field in self.additional_fields:
+            if type(field) == type([]):
+                self.cal_to_event_map[field[0]] = field[1]
+                self.all_fields.append(field[0])
+            elif type(field) == type({}):
+                self.cal_to_event_map.update(field)
+                self.all_fields += field.keys()
+            else:
+                self.all_fields.append(field)
 
     def parse(self):
         cal = Calendar.from_ical(urlopen(self.scrape_url).read())
-        items = []
+        self.cal = cal
         cal_events = self.filter_cal(cal)
 
         events = []
@@ -53,31 +91,28 @@ class ICalScraper(Scraper):
         cal_events = [cal_event for cal_event in cal.walk() if 'DTSTART' in cal_event]
         return cal_events
 
+    def parse_cal_event_extra(self, cal_event, event):
+        return event
+
     def parse_cal_event(self, cal_event):
         '''
         Convert ical events to dicts
         '''
+
         try:
             event = {}
-            event['title'] = unicode(cal_event['SUMMARY'])
-            event['description'] = unicode(cal_event['DESCRIPTION'])
             event['datetime_start'] = cal_event['DTSTART'].dt
             event['datetime_end'] = cal_event['DTEND'].dt
-            event['location'] = unicode(cal_event['LOCATION'])
             event['scrape_url'] = self.scrape_url
+            for field in self.all_fields:
+                try:
+                    event[self.cal_to_event_map[field]] = unicode(cal_event[field])
+                except KeyError, e:
+                    print str(e)
             return event
-            # Is timezone ok? check this
-        except KeyError:
-            print "Keyerror in ical parser for %s" % self.scrape_url
-
-
-#def get_page(url):
-#    '''
-#    Returns an xpath selector for a url
-#    '''
-#    html = urlopen(url).read()
-#    return HtmlXPathSelector(text=html)
-#
+            # TODO: Is timezone ok? check this
+        except KeyError, e:
+            print "Date error in ical parser for %s, fatal" % self.scrape_url
 
 class HtmlScraper(Scraper):
     '''
