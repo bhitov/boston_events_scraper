@@ -1,5 +1,8 @@
 from urllib2 import urlopen
 from scrapy.selector import HtmlXPathSelector
+from datetime import datetime
+from icalendar import Calendar
+
 import arrow
 
 def get_page(url):
@@ -9,7 +12,7 @@ def get_page(url):
 def parse_date_string(date, time):
     d = arrow.get(date, "MMMM D, YYYY").date()
     ts, te = [arrow.get(time_string.strip(), "H:mm a").time() for time_string in time.split('-')]
-    return d, ts, te
+    return datetime.combine(d, ts), datetime.combine(d, te)
 
 def get_tufts_events():
     hxs = get_page( 'http://www.ece.tufts.edu/research/colloquia/current.php')
@@ -23,7 +26,7 @@ def get_tufts_events():
         dl_section, desc_section = event.select('div')
         time_section = dl_section.select('div[@class="colloqdate"]/text()').extract()
 
-        item['date'], item['start_time'], item['end_time'] = parse_date_string(*time_section)
+        item['datetime_start'], item['datetime_end'] = parse_date_string(*time_section)
 
         item['location'] = dl_section.select('div[@class="colloqplace"]/text()').extract()[0]
         item['title'] = desc_section.select('div[@class="colloqtitle"]/a/text()').extract()[0]
@@ -57,12 +60,35 @@ def get_picower_events():
         item['title'] = h.xpath('//div[contains(@class, "views-field-field-subtitle-value")]/span/text()').extract()[0]
         item['description'] = h.xpath('//div[contains(@class, "views-field-field-subtitle-second-value")]/span/text()').extract()[0]
 
-        item['date'] = text_from_field_name(h, "Date + Time")
+        item['datetime_start'] = text_from_field_name(h, "Date + Time")
         item['location'] = text_from_field_name(h, "Location")
 
         items.append(item)
 
     return items
+
+def get_CSAIL_events():
+    cal = Calendar.from_ical(urlopen("https://calendar.csail.mit.edu/event_calendar.ics").read())
+    items = []
+
+    events = [event for event in cal.walk() if 'SUMMARY' in event]
+
+    for event in events:
+        try:
+            item = {}
+            item['title'] = unicode(event['SUMMARY'])
+            item['description'] = unicode(event['DESCRIPTION'])
+            item['datetime_start'] = event['DTSTART'].dt
+            item['datetime_end'] = event['DTEND'].dt
+            item['location'] = unicode(event['LOCATION'])
+            items.append(item)
+            # Is timezone ok? check this
+            pass
+        except KeyError:
+            print "Keyerror in get_CSAIL_EVENTS"
+
+    return items
+
 
 
 
