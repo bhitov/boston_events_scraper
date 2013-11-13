@@ -1,9 +1,29 @@
 from urllib2 import urlopen
 from scrapy.selector import HtmlXPathSelector
-from datetime import datetime
+from datetime import datetime, timedelta
 from icalendar import Calendar
 
+from suds.client import Client
+from suds.xsd.doctor import ImportDoctor, Import
+
 import arrow
+
+def get_MITmain_events():
+    url = "http://events.mit.edu/MITEventsFull.wsdl"
+    imp = Import("http://schemas.xmlsoap.org/soap/encoding/")
+    imp.filter.add("http://events.mit.edu/MIT/Events/")
+    doctor = ImportDoctor(imp)
+    client = Client(url, doctor=doctor)
+
+    start_date = datetime.now().date()
+    end_date = (start_date + timedelta(days=14))
+    fstr = "%Y/%m/%d"
+
+    # This data isn't useful yet, just a demo
+    data = client.service.getDateRangeEvents(start_date.strftime(fstr), end_date.strftime(fstr))
+    # We want to build a list of SearchCriterion but gah fuck SOAP
+
+    return data
 
 def get_page(url):
     html = urlopen(url).read()
@@ -67,11 +87,11 @@ def get_picower_events():
 
     return items
 
-def get_CSAIL_events():
-    cal = Calendar.from_ical(urlopen("https://calendar.csail.mit.edu/event_calendar.ics").read())
+def ical_parser(url):
+    cal = Calendar.from_ical(urlopen(url).read())
     items = []
 
-    events = [event for event in cal.walk() if 'SUMMARY' in event]
+    events = [event for event in cal.walk() if 'DTSTART' in event]
 
     for event in events:
         try:
@@ -81,13 +101,45 @@ def get_CSAIL_events():
             item['datetime_start'] = event['DTSTART'].dt
             item['datetime_end'] = event['DTEND'].dt
             item['location'] = unicode(event['LOCATION'])
+            item['url'] = url
             items.append(item)
             # Is timezone ok? check this
             pass
         except KeyError:
-            print "Keyerror in get_CSAIL_EVENTS"
+            print "Keyerror in ical parser for %s" % url
 
     return items
+
+
+
+def get_CSAIL_events():
+    return ical_parser("https://calendar.csail.mit.edu/event_calendar.ics")
+
+def get_BUPhys_events():
+    pass
+
+    pass
+    #cal = Calendar.from_ical(urlopen("https://calendar.csail.mit.edu/event_calendar.ics").read())
+
+    #items = []
+
+    #events = [event for event in cal.walk() if 'SUMMARY' in event]
+
+    #for event in events:
+    #    try:
+    #        item = {}
+    #        item['title'] = unicode(event['SUMMARY'])
+    #        item['description'] = unicode(event['DESCRIPTION'])
+    #        item['datetime_start'] = event['DTSTART'].dt
+    #        item['datetime_end'] = event['DTEND'].dt
+    #        item['location'] = unicode(event['LOCATION'])
+    #        items.append(item)
+    #        # Is timezone ok? check this
+    #        pass
+    #    except KeyError:
+    #        print "Keyerror in get_CSAIL_EVENTS"
+
+    #return items
 
 
 
