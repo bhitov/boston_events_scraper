@@ -7,11 +7,16 @@ from generic import HtmlScraper, ICalScraper, Scraper
 
 import arrow
 
+
+def parse_soap_date(soap_date):
+    data = {}
+    for field in ['year', 'day', 'hour', 'minute', 'month']:
+        data[field] = int(getattr(soap_date, field)[0])
+    return datetime(**data)
+
 class MITMainEventsScraper(Scraper):
     '''
     Use the MIT SOAP interface to pull public lectures
-
-    This is a PITA, maybe try a different approach?
     '''
     scrape_url = "http://events.mit.edu/MITEventsFull.wsdl"
 
@@ -25,17 +30,62 @@ class MITMainEventsScraper(Scraper):
         end_date = (start_date + timedelta(days=4))
         fstr = "%Y/%m/%d"
 
-        # This data isn't useful yet, just a demo
-        data = client.service.getDateRangeEvents(start_date.strftime(fstr), end_date.strftime(fstr))
+        start_date = start_date.strftime(fstr)
+        end_date = end_date.strftime(fstr)
 
-        # We want to build a list of SearchCriterion but gah fuck SOAP
-        # It will look something like:
-        client.factory.create('SearchCriterion')
-        # and then somehow it works or something
+        def make_criteria(criteria_dict):
+            search_criterion = []
+            for field in criteria_dict:
+                value = criteria_dict[field]
+                if type(value) is not type([]):
+                    value = [value]
+                criterion = client.factory.create('SearchCriterion')
+                criterion.field = field
+                criterion.value = value
+                search_criterion.append(criterion)
+            return search_criterion
 
+        # Couldn't get category filtering to work, must do it in post processing
+        criteria_dict = {
+            'start' : start_date,
+            'end' : end_date,
+            'opento' : '1', # public
+        }
 
-        return data
+        soap_events = client.service.findEvents(make_criteria(criteria_dict))
 
+        events = []
+
+        def safe_getattr(sp, attr):
+            spa = getattr(sp, attr)
+            if len(spa) > 0:
+                return spa[0]
+
+        def parse_categories(cats):
+            category_ids = []
+            category_names = []
+            for cat in cats:
+                category_ids.append(int(safe_getattr(cat, 'catid')))
+                category_names.append(safe_getattr(cat, 'name'))
+            return category_ids, category_names
+
+        for soap_event in soap_events:
+            event = self.new_event()
+            event['datetime_start'] = parse_soap_date(soap_event.start[0])
+            event['datetime_end'] = parse_soap_date(soap_event.end[0])
+
+            event['location'] = safe_getattr(soap_event, 'location')
+            event['description'] = safe_getattr(soap_event, 'description')
+            event['title'] = safe_getattr(soap_event, 'title')
+            event['opento'] = safe_getattr(soap_event, 'opento')
+            event['category_ids'], event['category_names'] = parse_categories(safe_getattr(soap_event, 'categories'))
+            events.append(event)
+
+        def category_filter(event):
+            # 2 is the category id for lectures
+            return 2 in event['category_ids']
+
+        return filter(category_filter, events)
 
 
 class TuftsEventsScraper(HtmlScraper):

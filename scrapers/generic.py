@@ -100,10 +100,10 @@ class ICalScraper(Scraper):
         '''
 
         try:
-            event = {}
+            event = self.new_event()
             event['datetime_start'] = cal_event['DTSTART'].dt
             event['datetime_end'] = cal_event['DTEND'].dt
-            event['scrape_url'] = self.scrape_url
+            #event['scrape_url'] = self.scrape_url
             for field in self.all_fields:
                 try:
                     event[self.cal_to_event_map[field]] = unicode(cal_event[field])
