@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from suds.client import Client
 from suds.xsd.doctor import ImportDoctor, Import
 
-from generic import HtmlScraper, ICalScraper, Scraper
+from lib.scraper import HtmlScraper, ICalScraper, Scraper
 
 import arrow
 
