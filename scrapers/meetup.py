@@ -87,11 +87,3 @@ class MeetupEventsScraper:
                 )
             group_events[group] = event_list
         return group_events
-        
-
-
-        
-        
-
-    
-
