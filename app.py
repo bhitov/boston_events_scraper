@@ -1,14 +1,19 @@
-from scrapers.scrapers import TuftsEventsScraper, PicowerEventScraper, CSAILEventsScraper
+from scraper_loader import ScraperLoader
+
 
 def demo():
-    print "Scraping Tufts"
-    tufts_events = TuftsEventsScraper().parse()
+    loader = ScraperLoader()
 
-    print "Scraping Picower"
-    picower_events = PicowerEventScraper().parse()
+    events = {}
 
-    print "Scraping CSAIL"
-    CSAIL_events = CSAILEventsScraper().parse()
+    for scraper in loader.get_all().itervalues():
+        if scraper.skip:
+            continue
+        print "Scraping %s" % scraper
+        events[scraper.__name__] = scraper().parse()
 
-    return tufts_events, picower_events, CSAIL_events
+    return events
 
+if __name__ == "__main__":
+    returns = demo()
+    print returns
