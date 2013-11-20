@@ -5,6 +5,8 @@ from icalendar import Calendar
 
 class Scraper(object):
 
+    skip = False
+
     def new_event(self):
         '''
         Populate events with metadata
