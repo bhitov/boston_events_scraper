@@ -1,11 +1,17 @@
+import arrow
 from urllib2 import urlopen
 from scrapy.selector import HtmlXPathSelector
 from icalendar import Calendar
 
-
 class Scraper(object):
 
     skip = False
+
+    # Is http mocking enabled for this test
+    mockable = False
+
+    def url_get(self, url):
+        return urlopen(url).read()
 
     def new_event(self):
         '''
@@ -47,6 +53,8 @@ class ICalScraper(Scraper):
 
     '''
     scrape_url = None
+    mockable = True
+
     UNICODE_FIELDS = {
         'SUMMARY': 'title',
         'DESCRIPTION' : 'description',
@@ -75,7 +83,7 @@ class ICalScraper(Scraper):
                 self.all_fields.append(field)
 
     def parse(self):
-        cal = Calendar.from_ical(urlopen(self.scrape_url).read())
+        cal = Calendar.from_ical(self.url_get(self.scrape_url))
         self.cal = cal
         cal_events = self.filter_cal(cal)
 
@@ -121,15 +129,15 @@ class HtmlScraper(Scraper):
     Scraper for html pages containing a list of events
     '''
     scrape_url = None
+    mockable = True
 
-    @classmethod
-    def get_page(cls, url=None):
+    def get_page(self, url=None):
         '''
         Returns an xpath node for a url
         '''
         if url is None:
-            url = cls.scrape_url
-        html = urlopen(url).read()
+            url = self.scrape_url
+        html = self.url_get(url)
         return HtmlXPathSelector(text=html)
 
     def parse(self):
