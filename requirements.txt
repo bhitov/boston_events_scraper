@@ -2,3 +2,4 @@ Scrapy>=0.20.0
 arrow>=0.4.2
 icalendar>=3.5
 suds>=0.4
+requests>=2.0.1
