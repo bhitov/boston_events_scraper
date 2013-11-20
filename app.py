@@ -16,4 +16,5 @@ def demo():
     return tufts_events, picower_events, CSAIL_events
 
 if __name__ == "__main__":
-    demo()
+    returns = demo()
+    print returns

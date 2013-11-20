@@ -30,10 +30,8 @@ class ScraperLoader(object):
 
                     if len(bases) > 1 and Scraper in bases:
                         base = bases[1].__name__.rsplit('.',1)[0]
-                        if self._classes.get(base, None) is None:
-                            self._classes[base] = []
-                        self._classes[base].append(obj)
+                        self._classes[name] = obj
                         print("Loaded %s::%s" % (base, obj.__name__))
 
-    def get(self, base):
-        return self._classes.get(base, [])
+    def get(self, classname):
+        return self._classes.get(classname, [])
