@@ -7,7 +7,6 @@ from generic import HtmlScraper, ICalScraper, Scraper
 
 import arrow
 
-
 def parse_soap_date(soap_date):
     data = {}
     for field in ['year', 'day', 'hour', 'minute', 'month']:
@@ -87,7 +86,6 @@ class MITMainEventsScraper(Scraper):
 
         return filter(category_filter, events)
 
-
 class TuftsEventsScraper(HtmlScraper):
     scrape_url = 'http://www.ece.tufts.edu/research/colloquia/current.php'
 
@@ -111,16 +109,13 @@ class TuftsEventsScraper(HtmlScraper):
         time_section = dl_section.xpath('div[@class="colloqdate"]/text()').extract()
 
         event['datetime_start'], event['datetime_end'] = self.parse_date_string(*time_section)
-
         event['location'] = dl_section.xpath('div[@class="colloqplace"]/text()').extract()[0]
         event['title'] = desc_section.xpath('div[@class="colloqtitle"]/a/text()').extract()[0]
         desc_addr = desc_section.xpath('div[@class="colloqtitle"]/a/@href').extract()[0]
-
         hxsd = self.get_page(BASE_URL + desc_addr)
         event['description'] = " ".join(hxsd.xpath('//div[@class="colloqevent"]/p/text()').extract()).strip()
 
         return event
-
 
 class PicowerEventScraper(HtmlScraper):
     base_url = "http://picower.mit.edu"
