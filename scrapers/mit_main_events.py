@@ -11,6 +11,7 @@ class MITMainEventsScraper(Scraper):
     '''
     Use the MIT SOAP interface to pull public lectures
     '''
+    skip = True
     scrape_url = "http://events.mit.edu/MITEventsFull.wsdl"
 
     def parse(self):

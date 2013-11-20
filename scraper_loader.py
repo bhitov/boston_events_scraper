@@ -1,7 +1,7 @@
 import inspect
 
 import os
-from lib.scraper import Scraper
+from lib.scraper import Scraper, HtmlScraper, ICalScraper
 
 
 class ScraperLoader(object):
@@ -25,7 +25,7 @@ class ScraperLoader(object):
                 for name, obj in inspect.getmembers(module, inspect.isclass):
                     bases = inspect.getmro(obj)
 
-                    if obj is Scraper:
+                    if obj in [Scraper, HtmlScraper, ICalScraper]:
                         continue
 
                     if len(bases) > 1 and Scraper in bases:
@@ -35,3 +35,6 @@ class ScraperLoader(object):
 
     def get(self, classname):
         return self._classes.get(classname, [])
+
+    def get_all(self):
+        return self._classes
